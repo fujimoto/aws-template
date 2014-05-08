@@ -1,7 +1,7 @@
-require "aws/configure/version"
+require "aws/template/version"
 
 module AWS
-  module Configure
+  module Template
     # Your code goes here...
   end
 end
