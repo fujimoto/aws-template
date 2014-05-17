@@ -5,7 +5,7 @@ require 'aws/template/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "aws-template"
-  spec.version       = AWS::Template::VERSION
+  spec.version       = AWS::VERSION
   spec.authors       = ["Masaki Fujimoto"]
   spec.email         = ["masaki.fujimoto@gree.net"]
   spec.summary       = "AWS Template"
