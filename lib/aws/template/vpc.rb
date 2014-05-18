@@ -31,6 +31,19 @@ module AWS
 
         return @vpc
       end
+
+      def destroy(vpc_name)
+        log("deleting VPC [#{vpc_name}]...", false)
+
+        vpc_id = resource_from_tag(@ec2.vpcs, "Name", vpc_name)
+        if vpc_id.nil?
+          log("already deleted, skipping")
+          return
+        end
+
+        @ec2.vpcs[vpc_id].delete
+        log("ok")
+      end
     end
   end
 end

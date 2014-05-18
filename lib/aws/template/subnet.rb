@@ -36,6 +36,30 @@ module AWS
         end
       end
 
+      def destroy(vpc_name, config_subnets)
+        vpc_id = resource_from_tag(@ec2.vpcs, "Name", vpc_name)
+        if vpc_id.nil?
+          log("VPC already deleted, skip deleting subnets")
+          return
+        end
+        vpc = @ec2.vpcs[vpc_id]
+
+        ["public", "private"].each do |t|
+          config_subnets[t].each do |subnet_name, subnet_cidr|
+            log("deleting subnet [#{subnet_name}]...", false)
+
+            subnet_id = resource_from_tag(vpc.subnets, "Name", subnet_name)
+            if subnet_id.nil?
+              log("already deleted, skipping")
+              next
+            end
+
+            vpc.subnets[subnet_id].delete
+            log("ok [#{subnet_id}]")
+          end
+        end
+      end
+
     end
   end
 end

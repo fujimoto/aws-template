@@ -31,6 +31,20 @@ module AWS
         File.chmod(0100600, key_pair_local_path)
         log("ok")
       end
+
+      def destroy(key_pair_name)
+        log("deleting key pair [#{key_pair_name}]...", false)
+
+        key_pair = @ec2.key_pairs[key_pair_name]
+        if key_pair.exists? == false
+          log("already deleted, skipping (local key files will not be deleted)")
+          return
+        end
+
+        key_pair.delete
+        log("ok")
+      end
+
     end
   end
 end

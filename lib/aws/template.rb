@@ -20,7 +20,7 @@ module AWS
     autoload  :EC2, "#{SRC}/ec2"
     autoload  :R53, "#{SRC}/r53"
 
-    def self.use(template_type, override_path)
+    def self.use(template_type, override_path = nil)
       require_path = "aws/template/" + template_type.gsub(/\-/, '_')
       require require_path
 
@@ -32,9 +32,25 @@ module AWS
       @customized_path = customized_path
 
       config = override(@template_path, @override_path)
-      execute(config, *args)
+      execute_apply(config, *args)
 
       store(config, @customized_path)
+    end
+
+    def destroy(customized_path, *args)
+      config = parse(customized_path)
+      execute_destroy(config, *args)
+    end
+
+    def confirm(message)
+      print message + " "
+      r = gets.strip
+      if r != "y"
+        puts "aboting..."
+        return false
+      end
+
+      return true
     end
 
     protected
@@ -46,6 +62,14 @@ module AWS
       @ec2 = AWS.ec2
       @elb = AWS.elb
       @r53 = AWS.route_53
+    end
+
+    def execute_apply(config, *args)
+      # to be overridden
+    end
+
+    def execute_destroy(config, *args)
+      # to be overridden
     end
 
     def vpc
@@ -93,9 +117,6 @@ module AWS
       @r53_internal = R53.new(@r53)
     end
 
-    def execute(config, *args)
-    end
-
     def override(template_path, override_path)
       template_config = parse(template_path)
       override_config = parse(override_path)
@@ -120,6 +141,8 @@ module AWS
     end
 
     def parse(json_path)
+      return {} if json_path.nil?
+
       config = JSON.parse(File.open(json_path).read())
     end
 

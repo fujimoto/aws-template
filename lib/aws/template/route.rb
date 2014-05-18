@@ -12,9 +12,7 @@ module AWS
         @route
       end
 
-      def create(vpc, igw, config_subnets)
-        main_route_table_name = "route-main"
-
+      def create(vpc, igw, config_subnets, main_route_table_name, public_route_table_name, public_route_cidr)
         # name if main route table does not have tags
         log("adding tag to main route table [#{main_route_table_name}]...", false)
         if vpc.route_tables.main_route_table.tags.to_h['Name'] != main_route_table_name
@@ -25,10 +23,7 @@ module AWS
         end
 
         # route for public subnets
-        public_route_table_name = "route-public"
-        public_route_cidr = "0.0.0.0/0"
         log("creating route for public subnets [#{public_route_table_name}]...", false)
-
         route_id = resource_from_tag(vpc.route_tables, "Name", public_route_table_name)
         route = nil
         if route_id
@@ -93,6 +88,33 @@ module AWS
           route.create_route(route_cidr, route_options)
         end
         log("ok")
+      end
+
+      def destroy(vpc_name, route_table_names)
+        vpc_id = resource_from_tag(@ec2.vpcs, "Name", vpc_name)
+        if vpc_id.nil?
+          log("VPC already deleted, skip deleting routes")
+          return
+        end
+        vpc = @ec2.vpcs[vpc_id]
+
+        route_table_names.each do |route_table_name|
+          log("deleting route [#{route_table_name}]...", false)
+          route_id = resource_from_tag(vpc.route_tables, "Name", route_table_name)
+          if route_id.nil?
+            log("already deleted, skipping")
+            next
+          end
+
+          route = vpc.route_tables[route_id]
+          if route.main?
+            log("skipping main route table")
+            next
+          end
+
+          route.delete
+          log("ok")
+        end
       end
 
     end

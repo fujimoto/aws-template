@@ -32,6 +32,10 @@ module AWS
         @instances[instance_name] = @ec2.instances[machine_id]
       end
 
+      def destroy(shutdown_proc)
+        shutdown_proc.call(@ec2)
+      end
+
       def eni(instance_name)
         return nil if @instances.nil?
         machine = @instances[instance_name]

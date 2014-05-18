@@ -15,13 +15,8 @@ module AWS
       def create(zone_name)
         log("creating zones [#{zone_name}]...", false)
 
-        @r53.hosted_zones.each do |h|
-          if h.name == zone_name
-            @hosted_zone = h
-            log("already exists, skipping [#{h.id}]")
-            break
-          end
-        end
+        @hosted_zone = from_name(zone_name)
+        log("already exists, skipping [#{@hosted_zone.id}]") if @hosted_zone
 
         hosted_zone_created = false
         if @hosted_zone.nil?
@@ -41,7 +36,26 @@ module AWS
         end
       end
 
-      def add_a_record(name, public_ip, ttl = 300)
+      def destroy(zone_name)
+        log("deleting zones [#{zone_name}]...", false)
+
+        @hosted_zone = from_name(zone_name)
+        if @hosted_zone.nil?
+          log("already deleted, skipping")
+          return
+        end
+
+        @hosted_zone.delete
+        log("ok")
+      end
+
+      def add_a_record(zone_name, name, public_ip, ttl = 300)
+        @hosted_zone = from_name(zone_name)
+        if @hosted_zone.nil?
+          log("warning: no such zone [#{zone_name}]...skip adding record [#{name}]")
+          return
+        end
+
         rrsets = @hosted_zone.rrsets
         r = rrsets[name, "A"]
         if r.exists?
@@ -56,7 +70,32 @@ module AWS
         end
       end
 
-      def add_a_record_lb(load_balancers, lb_name, lb_config)
+      def delete_a_record(zone_name, name)
+        log("deleting records [#{name}]...", false)
+        @hosted_zone = from_name(zone_name)
+        if @hosted_zone.nil?
+          log("zone alreday deleted, skipping")
+          return
+        end
+
+        rrsets = @hosted_zone.rrsets
+        r = rrsets[name, "A"]
+        if r.exists? == false
+          log("record alreday deleted, skipping")
+          return
+        end
+
+        r.delete
+        log("ok")
+      end
+
+      def add_a_record_lb(zone_name, load_balancers, lb_name, lb_config)
+        @hosted_zone = from_name(zone_name)
+        if @hosted_zone.nil?
+          log("warning: no such zone [#{zone_name}]...skip adding record [#{name}]")
+          return
+        end
+
         rrsets = @hosted_zone.rrsets
 
         zone_name = lb_config["zone_name"]
@@ -74,6 +113,40 @@ module AWS
           r = rrsets.create(zone_name, "A", {:alias_target => {:hosted_zone_id => hosted_zone_id, :dns_name => dns_name, :evaluate_target_health => false}})
           log("ok")
         end
+      end
+
+      def delete_a_record_lb(zone_name, lb_name, lb_config)
+        log("deleting records for [#{lb_name}]...", false)
+        @hosted_zone = from_name(zone_name)
+        if @hosted_zone.nil?
+          log("zone alreday deleted, skipping")
+          return
+        end
+
+        rrsets = @hosted_zone.rrsets
+
+        zone_name = lb_config["zone_name"]
+        dns_name = lb_config["dns_name"]
+
+        r = rrsets[zone_name, "A"]
+        if r.exists? == false
+          log("record already deleted, skipping")
+          return
+        end
+
+        r.delete
+        log("ok")
+      end
+
+      protected
+      def from_name(zone_name)
+        @r53.hosted_zones.each do |h|
+          if h.name == zone_name
+            return h
+          end
+        end
+
+        return nil
       end
 
     end

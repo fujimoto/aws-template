@@ -70,6 +70,22 @@ module AWS
         end
       end
 
+      def destroy(config_security_groups)
+        config_security_groups.each do |s_name, s_config|
+          log("deleting security group [#{s_name}]...", false)
+          security_group_id = resource_from_tag(@ec2.security_groups, "Name", s_name)
+
+          if security_group_id.nil?
+            log("already deleted, skipping")
+            next
+          end
+
+          s = @ec2.security_groups[security_group_id]
+          s.delete
+          log("ok")
+        end
+      end
+
       protected
       def parse_port_range(port_range)
         if /^(?<range_from>\d+)\.\.(?<range_to>\d+)$/ =~ port_range.to_s

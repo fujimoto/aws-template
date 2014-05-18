@@ -65,6 +65,21 @@ module AWS
         end
       end
 
+      def destroy(config_load_balancers)
+        config_load_balancers.each do |lb_name, lb_config|
+          log("deleting lb [#{lb_name}]...", false)
+
+          load_balancer = @elb.load_balancers[lb_name]
+          if load_balancer.exists? == false
+            log("already deleted, skipping")
+            next
+          end
+
+          load_balancer.delete
+          log("ok")
+        end
+      end
+
       protected
       def normalize(options)
         symbol_map = {
